@@ -11,11 +11,11 @@ class Movement extends Phaser.Scene {
             text: {}
         };  // Create an object to hold sprite bindings  
 
-        this.maxBullets = 10;
+        this.maxBullets = 10; 
         this.score = 0;
         this.playerHealth = 3;
-        this.avatarStage = 0;
-        this.gameOver = false;
+        this.avatarStage = 0; // state of avatar
+        this.gameOver = false; // initialize gameOver and winner to false
         this.winner = false;
         
     }
@@ -35,6 +35,7 @@ class Movement extends Phaser.Scene {
         // load enemy bullets
         this.load.image("arrow","item_arrow.png");
         this.load.image("spear", "item_spear.png");
+        // load audio
         this.load.audio("hit", "jingles_HIT13.ogg");
         this.load.audio("glitter", "glitter.mp3");
 
@@ -42,32 +43,32 @@ class Movement extends Phaser.Scene {
 
     create() {
         let my = this.my;   // create an alias to this.my for readability
-        
+        // add sprite
         my.sprite.avatar = this.add.sprite(game.config.width /2, game.config.height - 40, "avatar");
+        // add score text
         this.my.text.score = this.add.text(10,10, "Score: 0",{
             fontSize: "18px",
             color: "#ffffff"
         });
+        // add lives text
         this.my.text.lives = this.add.text(game.config.width - 120,10, "Lives: " + this.playerHealth,{
             fontSize: "18px",
             color: "#ffffff"
         });
+        // initialize the game
         this.init_game();
+        // group of sfx
         this.sfx= {
             hit: this.sound.add("hit"),
             glitter: this.sound.add("glitter")
         }
 
-        
-        
-        
-        
-
+        //keys
         this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
-
+        // speeds
         this.avatarSpeed = 300;
         this.bulletSpeed = 300;
         // points on the path
@@ -162,6 +163,7 @@ class Movement extends Phaser.Scene {
     }
 
     update(time, delta) {
+        // check if the game is over and if it is restart
         if(this.gameOver){
             if(Phaser.Input.Keyboard.JustDown(this.keyR)){
                 this.scene.restart();
@@ -190,39 +192,37 @@ class Movement extends Phaser.Scene {
                 );
             }
         }
-        my.sprite.bullets = my.sprite.bullets.filter((bullet) => bullet.y > -(bullet.displayHeight/2));
         // bullet and enemy collision
+        my.sprite.bullets = my.sprite.bullets.filter((bullet) => bullet.y > -(bullet.displayHeight/2));
         for (let bullet of my.sprite.bullets){
             for (let enemy of my.sprite.enemies){
-                if (enemy.visible && this.collides(enemy, bullet)){
-                    bullet.y = -100;
-                    this.sfx.hit.play();
-                    if(enemy.health !== undefined){
+                if (enemy.visible && this.collides(enemy, bullet)){ // if enemy is there and the bullet collides
+                    bullet.y = -100; // move the bullet off screen
+                    this.sfx.hit.play(); // play sfx
+                    if(enemy.health !== undefined){ // if the enemy is a big enemy (only big enemies have health) decrease it
                         enemy.health --;
                     
-                        if (enemy.health <= 0){
-                            enemy.stopFollow();
-                            enemy.visible = false;
-                            enemy.x = -100;
+                        if (enemy.health <= 0){ // if the enemy is killed
+                            enemy.stopFollow(); // stop the follow
+                            enemy.visible = false; // make it disappear
+                            enemy.x = -100; // move off screen
                             for (let arrow of enemy.arrows){
-                                arrow.destroy();
+                                arrow.destroy(); // get rid of all the enemies arrows
                             }
-                            enemy.arrows = [];
-                            this.score += enemy.scorePoints;
-                            this.updateScore();
-                            // TODO play sound here
+                            enemy.arrows = []; // reset arrow array
+                            this.score += enemy.scorePoints; // incr score
+                            this.updateScore(); // update score
                         }
                     }else{
-                        enemy.stopFollow();
-                        enemy.visible = false;
-                        enemy.x = -100;
+                        enemy.stopFollow(); // stop the follow
+                        enemy.visible = false; // make it disappear
+                        enemy.x = -100; // move off screen
                         for (let arrow of enemy.arrows){
-                            arrow.destroy();
+                            arrow.destroy(); // get rid of enemy arrows
                         }
-                        enemy.arrows = [];
-                        this.score += enemy.scorePoints;
-                        this.updateScore();
-                            // TODO play sound here
+                        enemy.arrows = []; // reset array
+                        this.score += enemy.scorePoints; // incr points
+                        this.updateScore(); // update score
                     }      
                 }
             }
@@ -233,24 +233,24 @@ class Movement extends Phaser.Scene {
         }
         // enemy bullet logic
         for(let enemy of my.sprite.enemies){
-            if(!enemy.visible){
+            if(!enemy.visible){ // if enemy is invisble, continue
                 continue;
             }
-            if(!enemy.canShoot){
+            if(!enemy.canShoot){ // if the enemy cant shoot, continue
                 continue;
             }
             enemy.shootCooldown -= dt;
-            if (enemy.shootCooldown <= 0){
-                this.enemyShoot(enemy);
-                enemy.shootCooldown = Phaser.Math.Between(1,3);
+            if (enemy.shootCooldown <= 0){ // check cooldown
+                this.enemyShoot(enemy); // enemy can shoot
+                enemy.shootCooldown = Phaser.Math.Between(1,3); // reset cooldown to be a random number 1-3 seconds
             }
         }
         // arrow movement
         for (let enemy of my.sprite.enemies){
-            if (!enemy.visible){
+            if (!enemy.visible){ // if enemy is invisible cont
                 continue;
             }
-            enemy.arrows = enemy.arrows.filter(arrow=>{
+            enemy.arrows = enemy.arrows.filter(arrow=>{ // similar to bullet function
                 arrow.y += arrow.speed * dt;
                 return arrow.y < game.config.height + arrow.displayHeight;
             })
@@ -258,14 +258,14 @@ class Movement extends Phaser.Scene {
         // arrow collision
         for (let enemy of my.sprite.enemies){
             for (let arrow of enemy.arrows){
-                if (this.collides(arrow, my.sprite.avatar)){
+                if (this.collides(arrow, my.sprite.avatar)){ // if arrow hits user
                     arrow.y = game.config.height + 200;
-                    this.playerHealth--;
-                    this.score -= 500;
-                    this.updateScore();
-                    this.my.text.lives.setText("Lives: " + this.playerHealth);
+                    this.playerHealth--; // decr user health
+                    this.score -= 500; // decr user score
+                    this.updateScore(); // update
+                    this.my.text.lives.setText("Lives: " + this.playerHealth); // update live text
                     if(this.playerHealth <=0){
-                        this.toggleGameOver();
+                        this.toggleGameOver(); // if player loses all lives, game over
                     }
                     
                 }
@@ -275,7 +275,7 @@ class Movement extends Phaser.Scene {
             this.showWinner();
         }
     }
-
+// helper functions
     collides(a, b) {
         if (Math.abs(a.x - b.x) > (a.displayWidth/2 + b.displayWidth/2)) return false;
         if (Math.abs(a.y - b.y) > (a.displayHeight/2 + b.displayHeight/2)) return false;
@@ -283,7 +283,7 @@ class Movement extends Phaser.Scene {
     }
     enemyShoot(enemy){
         let enemyobj = this.add.sprite(enemy.x,enemy.y + enemy.displayHeight/2, enemy.objTexture);
-        enemyobj.angle = enemy.objAngle;
+        enemyobj.angle = enemy.objAngle; // each enemyobj sprite was faced diff ways so gotta rotate them
         enemyobj.speed = enemy.objSpeed;
         enemy.arrows.push(enemyobj);
         
